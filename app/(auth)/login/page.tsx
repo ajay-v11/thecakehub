@@ -88,7 +88,7 @@ function Login() {
   }
 
   return (
-    <div className='flex items-center justify-center mt-32'>
+    <div className='flex items-center justify-center mt-32 mb-44'>
       <div className='flex flex-col w-full max-w-md px-4'>
         <h1 className='text-xl text-gray-800 p-4 text-center'>Login</h1>
 
@@ -136,6 +136,7 @@ function Login() {
           onClick={onGoogleClick}
           variant='outline'
           className='w-full mt-10'>
+          <img src='/google.png' alt='google log' className='h-5 w-5'></img>{' '}
           Sign in with Google
         </Button>
       </div>

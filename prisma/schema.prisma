@@ -25,20 +25,20 @@ model User {
 }
 
 model Address {
-  id    Int    @id @default(autoincrement())
-  name  String
-  phone String
-
-  User   User? @relation(fields: [userId], references: [id])
+  id     Int    @id @default(autoincrement())
+  name   String
+  phone  String
+  User   User?  @relation(fields: [userId], references: [id])
   userId Int?
 }
 
 model Order {
-  id       Int    @id @default(autoincrement())
-  userId   Int
-  user     User   @relation(fields: [userId], references: [id])
-  products String
-  status   String
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+  products  Product[]
+  status    String
+  createdAt DateTime  @default(now())
 }
 
 //add the prodcut later
@@ -48,4 +48,6 @@ model Product {
   type    String
   inStock Boolean @default(true)
   image   String
+  Order   Order?  @relation(fields: [orderId], references: [id])
+  orderId Int?
 }

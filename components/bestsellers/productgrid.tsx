@@ -14,7 +14,7 @@ const PRODUCTS: Product[] = [
     title: 'Chocolate cake',
     description: 'Rich chocolate cake with dark chocolate ganache',
     price: 55.0,
-    imageUrl: '/placeholder.svg?height=300&width=400',
+    imageUrl: '/cake1.jpg',
     category: 'Cakes',
   },
   {
@@ -22,7 +22,7 @@ const PRODUCTS: Product[] = [
     title: 'Red velvet cake',
     description: 'Classic red velvet with cream cheese frosting',
     price: 60.0,
-    imageUrl: '/placeholder.svg?height=300&width=400',
+    imageUrl: '/cake2.jpg',
     category: 'Cakes',
   },
   {
@@ -30,7 +30,7 @@ const PRODUCTS: Product[] = [
     title: 'Chicken puff',
     description: 'Flaky pastry filled with seasoned chicken',
     price: 25.0,
-    imageUrl: '/placeholder.svg?height=300&width=400',
+    imageUrl: '/cake3.jpg',
     category: 'Puffs',
   },
   {
@@ -38,7 +38,7 @@ const PRODUCTS: Product[] = [
     title: 'Vegetable puff',
     description: 'Crispy puff pastry with mixed vegetables',
     price: 20.0,
-    imageUrl: '/placeholder.svg?height=300&width=400',
+    imageUrl: '/cake4.jpg',
     category: 'Puffs',
   },
   {
@@ -46,7 +46,7 @@ const PRODUCTS: Product[] = [
     title: 'Fruit tart',
     description: 'Fresh seasonal fruits on vanilla custard',
     price: 40.0,
-    imageUrl: '/placeholder.svg?height=300&width=400',
+    imageUrl: '/cake5.jpg',
     category: 'Tarts',
   },
   {
@@ -54,7 +54,7 @@ const PRODUCTS: Product[] = [
     title: 'Vanilla bean tart',
     description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit',
     price: 45.9,
-    imageUrl: '/placeholder.svg?height=300&width=400',
+    imageUrl: '/cake6.jpg',
     category: 'Tarts',
   },
 ];
