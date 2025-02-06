@@ -1,7 +1,6 @@
 'use client';
 
-import {useState} from 'react';
-
+import {useEffect, useState} from 'react';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
 import {Label} from '@/components/ui/label';
@@ -10,6 +9,9 @@ import {Button} from '@/components/ui/button';
 import {useCartStore} from '@/lib/cartStore';
 import Button1 from '@/components/home/button1';
 import {CartItem} from '@/lib/types';
+import {useSession} from 'next-auth/react';
+import Image from 'next/image';
+import {makeOrder} from '@/lib/actions/orders';
 
 export default function CheckoutPage() {
   const {items, updateQuantity, removeFromCart} = useCartStore();
@@ -19,23 +21,16 @@ export default function CheckoutPage() {
     phone: '',
     address: '',
   });
-  const [deliveryDetails, setDeliveryDetails] = useState({
-    date: '',
-    time: '',
-  });
+  const [total, setTotal] = useState(0);
+
   const [message, setMessage] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('payOnDelivery');
+  const {data: session} = useSession();
 
   const handleCustomerDetailsChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     setCustomerDetails({...customerDetails, [e.target.name]: e.target.value});
-  };
-
-  const handleDeliveryDetailsChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setDeliveryDetails({...deliveryDetails, [e.target.name]: e.target.value});
   };
 
   const handleQuantityChange = (item: CartItem, newQuantity: number) => {
@@ -46,20 +41,41 @@ export default function CheckoutPage() {
     }
   };
 
-  const calculateTotal = () => {
-    return items.reduce((total, item) => total + item.price * item.quantity, 0);
-  };
+  useEffect(() => {
+    const resutl = items.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0
+    );
+    setTotal(resutl);
+  }, [items]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  /*const calculateTotal = () => {
+    const total = items.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0
+    );
+    return total;
+  };*/
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Here you would typically send the order to your backend
-    console.log('Order submitted:', {
-      items,
-      customerDetails,
-      deliveryDetails,
-      message,
-      paymentMethod,
-    });
+    const userId = session?.user.id;
+
+    try {
+      const response = await makeOrder({
+        message,
+        paymentMethod,
+        customerDetails,
+        userId,
+        items,
+        total,
+      });
+      console.log('Order result', response);
+    } catch (error) {
+      console.error('Error submitting order:', error);
+      throw error;
+    }
   };
 
   return (
@@ -79,8 +95,15 @@ export default function CheckoutPage() {
                   {items.map((item) => (
                     <div
                       key={item.id}
-                      className='flex justify-between items-center mb-2 text-slate-800'>
+                      className='flex justify-between items-center mb-2 text-slate-800 p-2'>
+                      <Image
+                        src={item.imageUrl}
+                        alt='item image'
+                        width={70}
+                        height={50}
+                        className='rounded-md '></Image>
                       <span>{item.title}</span>
+
                       <div>
                         <Button
                           type='button'
@@ -110,7 +133,7 @@ export default function CheckoutPage() {
                     </div>
                   ))}
                   <div className='text-right font-bold mt-4 text-purple-900'>
-                    Total: Rs {calculateTotal()}
+                    Total: Rs {total}
                   </div>
                 </div>
                 <div>
@@ -131,20 +154,7 @@ export default function CheckoutPage() {
                         className='border-purple-300 focus:border-purple-500 focus:ring-purple-500'
                       />
                     </div>
-                    <div>
-                      <Label htmlFor='email' className='text-slate-800'>
-                        Email
-                      </Label>
-                      <Input
-                        id='email'
-                        name='email'
-                        type='email'
-                        value={customerDetails.email}
-                        onChange={handleCustomerDetailsChange}
-                        required
-                        className='border-purple-300 focus:border-purple-500 focus:ring-purple-500'
-                      />
-                    </div>
+
                     <div>
                       <Label htmlFor='phone' className='text-slate-800'>
                         Phone
@@ -183,47 +193,12 @@ export default function CheckoutPage() {
               <div className='space-y-6'>
                 <div>
                   <h2 className='text-xl font-semibold mb-4 text-purple-800'>
-                    Delivery Details
-                  </h2>
-                  <div className='space-y-4'>
-                    <div>
-                      <Label htmlFor='date' className='text-slate-800'>
-                        Delivery Date
-                      </Label>
-                      <Input
-                        id='date'
-                        name='date'
-                        type='date'
-                        value={deliveryDetails.date}
-                        onChange={handleDeliveryDetailsChange}
-                        required
-                        className='border-purple-300 focus:border-purple-500 focus:ring-purple-500'
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor='time' className='text-slate-800'>
-                        Delivery Time
-                      </Label>
-                      <Input
-                        id='time'
-                        name='time'
-                        type='time'
-                        value={deliveryDetails.time}
-                        onChange={handleDeliveryDetailsChange}
-                        required
-                        className='border-purple-300 focus:border-purple-500 focus:ring-purple-500'
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <h2 className='text-xl font-semibold mb-4 text-purple-800'>
                     Message for the Bakery
                   </h2>
                   <Textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder='Any special instructions or requests?'
+                    placeholder='Any special instructions or requests? Or Message on the cake'
                     className='border-purple-300 focus:border-purple-500 focus:ring-purple-500'
                   />
                 </div>

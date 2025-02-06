@@ -50,3 +50,25 @@ export type floatinCartItem = {
   price: number;
   quantity: number;
 };
+
+export interface makeOrderType {
+  message?: string;
+  paymentMethod: string;
+  userId: number | undefined;
+  total: number;
+  customerDetails: {
+    name: string;
+    address: string;
+    email: string;
+    phone: string;
+  };
+  items: Array<{
+    id: number;
+    title: string;
+    description: string;
+    price: number;
+    imageUrl: string;
+    category: string;
+    quantity: number;
+  }>;
+}
