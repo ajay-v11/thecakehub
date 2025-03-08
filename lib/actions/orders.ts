@@ -32,7 +32,6 @@ export async function makeOrder(params: makeOrderType) {
                 price: item.price,
                 imageUrl: item.imageUrl || '',
                 category: item.category || 'Uncategorized',
-                quantity: item.quantity,
               },
             },
             quantity: item.quantity,
@@ -95,6 +94,72 @@ export async function getAllOrder() {
     };
   } finally {
     // Optionally disconnect in production
+    if (process.env.NODE_ENV === 'production') {
+      await prisma.$disconnect();
+    }
+  }
+}
+
+export async function makeCustomOrder(params) {
+  try {
+    if (
+      !params.cakeDescription ||
+      !params.customerDetails.name ||
+      !params.customerDetails.phone
+    ) {
+      throw new Error('Missing requeired customer order details');
+    }
+
+    const customOrder = await prisma.customOrder.create({
+      data: {
+        userId: params.userId,
+        description: params.cakeDescription,
+        customerName: params.customerDetails.name,
+        customerPhone: params.customerDetails.phone,
+        customerAddress: params.customerDetails.address || '',
+        customerEmail: params.customerDetails.email || '',
+        hasCustomImage: !!params.customImage,
+        selectedTemplate: params.selectedTemplate
+          ? params.selectedTemplate.name
+          : null,
+        customImage: params.customImage
+          ? Buffer.from(await params.customImage.arrayBuffer())
+          : null,
+      },
+    });
+    return {
+      success: true,
+      customOrderId: customOrder.id,
+    };
+  } catch (error) {
+    console.error('Error creating custom order', error);
+    return {
+      success: false,
+      error: String(error),
+    };
+  } finally {
+    if (process.env.NODE_ENV === 'production') {
+      await prisma.$disconnect();
+    }
+  }
+}
+
+export async function getAllCustomOrders() {
+  try {
+    const customOrders = await prisma.customOrder.findMany();
+
+    return {
+      success: true,
+      customOrders,
+    };
+  } catch (error) {
+    console.error('Error fetching custom Orders', error);
+
+    return {
+      success: false,
+      error: String(error),
+    };
+  } finally {
     if (process.env.NODE_ENV === 'production') {
       await prisma.$disconnect();
     }
