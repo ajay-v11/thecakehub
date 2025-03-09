@@ -5,7 +5,7 @@ import {NewProduct} from '../types';
 export async function getAllProducts() {
   try {
     const products = await prisma.product.findMany();
-    console.log(products);
+
     return {success: true, products};
   } catch (error: any) {
     //errorMessage: error.message,
@@ -34,7 +34,7 @@ export async function addProduct(params: NewProduct) {
         price: params.price,
       },
     });
-    console.log(product);
+
     return {success: true, product};
   } catch (error: any) {
     //errorMessage: error.message,

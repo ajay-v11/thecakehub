@@ -61,10 +61,6 @@ const Header: React.FC = () => {
     router.push('/login');
   };
 
-  // For debugging purposes
-  console.log('Session data:', session);
-  console.log('Is admin:', isAdmin);
-
   return (
     <div className='relative sticky top-0 z-50 bg-transparent'>
       {/* Glow effect */}
