@@ -1,5 +1,5 @@
-import Image from 'next/image';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
+import Map from '@/components/home/map';
 
 const stores = [
   {
@@ -74,18 +74,8 @@ export default function AboutContactPage() {
           </CardHeader>
           <CardContent>
             <div className='aspect-w-16 aspect-h-9 rounded-lg overflow-hidden'>
-              <Image
-                src='/placeholder.svg'
-                alt='Map of our store locations'
-                width={800}
-                height={450}
-                className='object-cover'
-              />
+              <Map address='The CAKE HUB, near Hanuman statue, Nowrangpur, Odisha 764059' />
             </div>
-            <p className='text-sm text-slate-500 mt-2'>
-              Map placeholder: In a real application, embed a Google Maps
-              component here showing both store locations.
-            </p>
           </CardContent>
         </Card>
       </div>

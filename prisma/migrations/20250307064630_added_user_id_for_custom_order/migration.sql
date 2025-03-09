@@ -1,0 +1,11 @@
+-- AlterTable
+ALTER TABLE "CustomOrder" ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN     "status" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "userId" INTEGER;
+
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN     "delivered" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "status" BOOLEAN NOT NULL DEFAULT false;
+
+-- AddForeignKey
+ALTER TABLE "CustomOrder" ADD CONSTRAINT "CustomOrder_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

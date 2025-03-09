@@ -1,6 +1,8 @@
 'use client';
 import {useState, useEffect} from 'react';
 import Image from 'next/image';
+import {MapPin} from 'lucide-react';
+import Link from 'next/link';
 
 const slides = [
   {src: '/cake1.jpg'},
@@ -22,7 +24,7 @@ const Hero = () => {
   }, []);
 
   return (
-    <div className='relative h-[550px] md:h-[650px] flex flex-col-reverse md:flex-row justify-end items-center px-10 pt-10 md:pt-1  md:px-24 z-10 gap-3  bg-gradient-to-b from-white via-[#ffe7e7]  to-pink-200'>
+    <div className='relative h-[550px] md:h-[650px] flex flex-col-reverse md:flex-row justify-end items-center px-5 pt-5 md:pt-1  md:px-24 z-10 gap-3  bg-gradient-to-b from-white via-[#ffe7e7]  to-pink-200'>
       <div className='custom-shape-divider-bottom-1736773001'>
         <svg
           data-name='Layer 1'
@@ -34,17 +36,25 @@ const Hero = () => {
             className='shape-fill'></path>
         </svg>
       </div>
-      <div className='md:col-span-1 flex flex-col gap-4 md:gap-7 md:pr-20'>
+      <div className='md:col-span-1 flex flex-col gap-2 md:gap-7 md:pr-20'>
         <h1 className='text-2xl md:text-5xl font-bold leading-normal bg-gradient-to-r from-pink-900 via-purple-900 to-indigo-800 inline-block text-transparent bg-clip-text'>
           Sweet moments, freshly baked with love
         </h1>
         <p className='text-slate-800 text-base md:text-lg font-thin'>
           Customized cakes, treats and everything sweet for all your special
-          matters
+          matters.
         </p>
-        <button className='bg-purple-700 text-white font-base text-md md:font-semibold md:text-xl rounded-lg h-10 md:h-12 w-24 md:w-40 hover:bg-purple-500 hover:scale-90 '>
+        <p className='text-slate-800 text-base md:text-lg font-thin flex flex-row'>
+          <span className='pr-2'>
+            <MapPin className='scale-90 md:scale-100' />
+          </span>
+          Nabarangpur, Odisha
+        </p>
+        <Link
+          href='/shop'
+          className='bg-purple-700 text-white font-base text-base md:font-semibold md:text-xl rounded-lg p-2 md:p-3  w-24 md:w-36 max-w-40 hover:bg-purple-500 hover:scale-90'>
           Order now
-        </button>
+        </Link>
       </div>
       <div className='relative size-36 w-full bg-blue-300 h-[230px] md:h-[450px] md:col-span-1 overflow-hidden rounded-xl'>
         {slides.map((slide, index) => (

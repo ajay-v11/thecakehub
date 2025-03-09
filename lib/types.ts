@@ -34,11 +34,13 @@ declare global {
 export type Product = {
   id: number;
   title: string;
-  description: string;
+  description: string | null;
   price: number;
   imageUrl: string;
   category: string;
 };
+
+export type NewProduct = Omit<Product, 'id'>;
 
 export type CartItem = Product & {
   quantity: number;
@@ -71,4 +73,15 @@ export interface makeOrderType {
     category: string;
     quantity: number;
   }>;
+}
+
+export interface TestimonialProps {
+  name: string;
+  imageUrl: string;
+  testimonial: string;
+}
+
+export interface CakeCardProps {
+  name: string;
+  imageUrl: string;
 }

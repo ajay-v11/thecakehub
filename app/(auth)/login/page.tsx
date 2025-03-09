@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/form';
 import {Input} from '@/components/ui/input';
 import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
+import {useRouter, useSearchParams} from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -25,6 +26,9 @@ const formSchema = z.object({
 function Login() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect') || '/';
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -35,7 +39,6 @@ function Login() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log('Form values:', values);
     setLoginError(null);
     setIsLoading(true);
 
@@ -45,7 +48,6 @@ function Login() {
         email: values.email,
         username: values.username,
       });
-      console.log('signiin creds', result);
 
       if (result?.error) {
         // Map common error messages
@@ -62,7 +64,7 @@ function Login() {
         );
       } else {
         // Successful login - you might want to replace this with a proper redirect
-        window.location.href = '/dashboard';
+        router.push(redirectUrl);
       }
     } catch (error) {
       // Handle network errors or other unexpected issues
@@ -79,7 +81,7 @@ function Login() {
     setIsLoading(true);
 
     try {
-      signIn('google', {callbackUrl: '/dashboard'});
+      signIn('google', {callbackUrl: redirectUrl});
     } catch (error) {
       console.error('Google Sign-in Error:', error);
     } finally {

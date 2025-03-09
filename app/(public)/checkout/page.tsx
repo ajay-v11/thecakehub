@@ -10,10 +10,13 @@ import {useCartStore} from '@/lib/cartStore';
 import Button1 from '@/components/home/button1';
 import {CartItem} from '@/lib/types';
 import {useSession} from 'next-auth/react';
-import Image from 'next/image';
 import {makeOrder} from '@/lib/actions/orders';
+import OrderDialog from '@/components/cart/orderSuccess';
+import {sendOrderEmail} from '@/lib/actions/sendMail';
 
 export default function CheckoutPage() {
+  const [showDialog, setShowDialog] = useState(false);
+  const [orderId, setOrderId] = useState<string | undefined>('');
   const {items, updateQuantity, removeFromCart} = useCartStore();
   const [customerDetails, setCustomerDetails] = useState({
     name: '',
@@ -22,10 +25,10 @@ export default function CheckoutPage() {
     address: '',
   });
   const [total, setTotal] = useState(0);
-
   const [message, setMessage] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('payOnDelivery');
   const {data: session} = useSession();
+  const clearCart = useCartStore((state) => state.clearCart);
 
   const handleCustomerDetailsChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -59,29 +62,71 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the order to your backend
-    const userId = session?.user.id;
+
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      alert('User ID is missing. Please log in and try again.');
+      return;
+    }
 
     try {
-      const response = await makeOrder({
+      const orderPayload = {
         message,
         paymentMethod,
         customerDetails,
         userId,
-        items,
+        items: items.map((item) => ({
+          ...item,
+          description: item.description || '',
+        })),
         total,
-      });
-      console.log('Order result', response);
+      };
+
+      const response = await makeOrder(orderPayload);
+
+      if (response.success && response.order?.id) {
+        setOrderId(response.order.id.toString());
+        setShowDialog(true);
+
+        const emailPayload = {
+          orderId: response.order.id,
+          customerName: customerDetails.name,
+          customerEmail: customerDetails.email,
+          items,
+          total,
+        };
+
+        const emailResponse = await sendOrderEmail(
+          emailPayload,
+          'orderReceived'
+        );
+
+        if (emailResponse.status === 200) {
+        } else {
+          console.warn(
+            'Failed to send order confirmation email:',
+            emailResponse.message
+          );
+        }
+
+        clearCart();
+      } else {
+        alert('Failed to place order. Please try again.');
+        console.warn('Order submission failed:', response);
+      }
     } catch (error) {
       console.error('Error submitting order:', error);
-      throw error;
+      alert(
+        'An unexpected error occurred while placing your order. Please try again later.'
+      );
     }
   };
 
   return (
-    <div className='min-h-screen bg-gradient-to-b from-white via-[#ffe7e7] to-pink-200 py-12 px-4 sm:px-6 lg:px-8'>
+    <div className='min-h-screen bg-gradient-to-b from-white via-[#ffe7e7] to-pink-200 py5 md:py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden'>
-        <div className='p-8'>
+        <div className='p-2 md:p-6 lg:p-8'>
           <h1 className='text-3xl font-bold mb-6 bg-gradient-to-r from-pink-900 via-purple-900 to-indigo-800 inline-block text-transparent bg-clip-text'>
             Checkout
           </h1>
@@ -96,12 +141,6 @@ export default function CheckoutPage() {
                     <div
                       key={item.id}
                       className='flex justify-between items-center mb-2 text-slate-800 p-2'>
-                      <Image
-                        src={item.imageUrl}
-                        alt='item image'
-                        width={70}
-                        height={50}
-                        className='rounded-md '></Image>
                       <span>{item.title}</span>
 
                       <div>
@@ -126,7 +165,7 @@ export default function CheckoutPage() {
                           className='text-purple-700 border-purple-700 hover:bg-purple-100'>
                           +
                         </Button>
-                        <span className='ml-4'>
+                        <span className='ml-4 text-xs md:text-sm lg:text-base'>
                           Rs {item.price * item.quantity}
                         </span>
                       </div>
@@ -164,6 +203,19 @@ export default function CheckoutPage() {
                         name='phone'
                         type='tel'
                         value={customerDetails.phone}
+                        onChange={handleCustomerDetailsChange}
+                        required
+                        className='border-purple-300 focus:border-purple-500 focus:ring-purple-500'
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor='email' className='text-slate-800'>
+                        Email
+                      </Label>
+                      <Input
+                        id='email'
+                        name='email'
+                        value={customerDetails.email}
                         onChange={handleCustomerDetailsChange}
                         required
                         className='border-purple-300 focus:border-purple-500 focus:ring-purple-500'
@@ -239,6 +291,11 @@ export default function CheckoutPage() {
               </div>
             </div>
           </form>
+          <OrderDialog
+            open={showDialog}
+            setOpen={setShowDialog}
+            orderId={orderId}
+          />
         </div>
       </div>
     </div>

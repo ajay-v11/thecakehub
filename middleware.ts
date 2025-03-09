@@ -4,7 +4,6 @@ import {getToken} from 'next-auth/jwt';
 
 export async function middleware(req: NextRequest) {
   const token = await getToken({req, secret: process.env.NEXTAUTH_SECRET});
-  console.log('Token role:', token?.isAdmin);
 
   // Check if route starts with /admin and user is not an admin
   if (
@@ -13,8 +12,11 @@ export async function middleware(req: NextRequest) {
   ) {
     return NextResponse.redirect(new URL('/', req.url));
   }
+  if (req.nextUrl.pathname.startsWith('/custom') && !token) {
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
 }
 
 export const config = {
-  matcher: '/admin/:path*',
+  matcher: ['/admin/:path*', '/custom/:path*'],
 };

@@ -129,7 +129,7 @@ export async function makeCustomOrder(params) {
     });
     return {
       success: true,
-      customOrderId: customOrder.id,
+      customOrder,
     };
   } catch (error) {
     console.error('Error creating custom order', error);

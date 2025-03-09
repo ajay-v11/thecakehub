@@ -92,3 +92,14 @@ body {
 .custom-shape-divider-bottom-1736773001 .shape-fill {
   fill: #ffffff;
 }
+
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

@@ -70,16 +70,16 @@ export function ProductGrid() {
   const addToCart = useCartStore((state) => state.addToCart);
 
   return (
-    <div className='space-y-8 px-7 md:px-10 lg:px-20 pt-20'>
+    <div className='space-y-8 px-4 sm:px-7 md:px-10 lg:px-20 pt-16 sm:pt-20'>
       <div className='flex justify-between items-center'>
         <div className='flex-grow border-t border-gray-300'></div>
-        <span className='text-lg md:text-4xl font-bold bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 bg-clip-text inline-block text-transparent pb-5 md:pb-7 lg:pb-10'>
+        <span className='text-2xl md:text-4xl font-bold bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 bg-clip-text inline-block text-transparent pb-5 md:pb-7 lg:pb-10 px-3'>
           OUR BEST SELLERS
         </span>
         <div className='flex-grow border-t border-gray-300'></div>
       </div>
 
-      <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-4'>
+      <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6'>
         {currentProducts.map((product) => (
           <ProductCard
             key={product.id}
@@ -87,11 +87,13 @@ export function ProductGrid() {
             onAddToCart={() => addToCart(product)}
           />
         ))}
-        <Link
-          href='shop'
-          className='text-sm md:text-base text-red-500 hover:text-red-600'>
-          See All
-        </Link>
+        <div className='flex items-center justify-center'>
+          <Link
+            href='/shop'
+            className='flex items-center justify-center h-full w-full text-base md:text-lg text-purple-700 font-semibold hover:text-pink-500 transition-colors border-2 border-dashed border-purple-300 hover:border-pink-500 rounded-lg p-4 '>
+            See All Products
+          </Link>
+        </div>
       </div>
 
       {totalPages > 1 && (

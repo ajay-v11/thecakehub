@@ -1,6 +1,6 @@
 'use client';
 import React, {useEffect, useState} from 'react';
-import {Plus, Trash2} from 'lucide-react';
+import {Plus} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,90 +20,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import {getAllProducts} from '@/lib/actions/products';
 
-const AdminProductCard = ({product, onDelete}) => {
-  return (
-    <div className='bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300'>
-      <div className='relative h-48 overflow-hidden'>
-        <img
-          src={product.imageUrl}
-          alt={product.title}
-          className='w-full h-full object-cover transition-transform duration-300 hover:scale-105'
-        />
-        <div className='absolute top-2 right-2'>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant='destructive'
-                size='icon'
-                className='rounded-full'>
-                <Trash2 className='h-4 w-4' />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete {product.title}. This action
-                  cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => onDelete(product.id)}
-                  className='bg-red-500 hover:bg-red-600'>
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
-      <div className='p-4 space-y-2'>
-        <h3 className='text-lg font-semibold text-gray-800 truncate'>
-          {product.title}
-        </h3>
-        <div className='flex justify-between items-center'>
-          <span className='text-sm font-medium text-purple-600'>
-            {product.category}
-          </span>
-          <span className='text-sm font-bold text-gray-700'>
-            ₹{product.price}
-          </span>
-        </div>
-        <div className='flex justify-between items-center'>
-          <span className='text-sm text-gray-500'>
-            Quantity: {product.quantity}
-          </span>
-          <span className='text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full'>
-            ID: {product.id}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
+import {addProduct, getAllProducts} from '@/lib/actions/products';
+import {AdminProductCard} from '@/components/admin/adminproductcard';
+import {NewProduct, Product} from '@/lib/types';
 
-const AdminProducts = () => {
-  const [products, setProducts] = useState([]);
-  const [newProduct, setNewProduct] = useState({
+const AdminProducts: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [newProduct, setNewProduct] = useState<NewProduct>({
     title: '',
-    quantity: 0,
     category: '',
     imageUrl: '',
+    description: '',
     price: 0,
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -111,45 +39,62 @@ const AdminProducts = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       const results = await getAllProducts();
-      setProducts(results.products);
+      if (results && results.success) {
+        setProducts(results.products);
+      } else {
+        setProducts([]); // Fallback to an empty array if results is undefined
+      }
     };
     fetchProducts();
   }, []);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const {name, value} = e.target;
     setNewProduct((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === 'price' ? Number(value) : value, // ✅ Convert price to number
     }));
   };
 
-  const handleCategoryChange = (value) => {
+  const handleCategoryChange = (value: string) => {
     setNewProduct((prev) => ({
       ...prev,
       category: value,
     }));
   };
 
-  const handleAddProduct = () => {
-    const newId = Math.max(...products.map((p) => p.id)) + 1;
-    const productToAdd = {
-      ...newProduct,
-      id: newId,
-    };
+  const handleAddProduct = async () => {
+    try {
+      const result = await addProduct(newProduct); // ✅ Call the server action
 
-    setProducts((prev) => [...prev, productToAdd]);
-    setNewProduct({
-      title: '',
-      quantity: 0,
-      category: '',
-      imageUrl: '',
-      price: 0,
-    });
-    setIsDialogOpen(false);
+      if (result?.success && result.product) {
+        setProducts((prev) => [
+          ...prev,
+          {
+            ...result.product,
+            description: result.product.description ?? '', // ✅ Convert null to an empty string
+          },
+        ]); // ✅ Update state with new product
+        setNewProduct({
+          title: '',
+          description: '',
+          category: '',
+          imageUrl: '',
+          price: 0,
+        });
+        setIsDialogOpen(false);
+      } else {
+        console.error(
+          'Failed to add product:',
+          result?.error || 'unknow error'
+        );
+      }
+    } catch (error) {
+      console.error('Error adding product:', error);
+    }
   };
 
-  const handleDeleteProduct = (productId) => {
+  const handleDeleteProduct = (productId: number) => {
     setProducts((prev) => prev.filter((product) => product.id !== productId));
   };
 
@@ -198,20 +143,6 @@ const AdminProducts = () => {
                     onChange={handleInputChange}
                     className='col-span-3'
                     placeholder='Enter image URL'
-                  />
-                </div>
-                <div className='grid grid-cols-4 items-center gap-4'>
-                  <Label htmlFor='quantity' className='text-right'>
-                    Quantity
-                  </Label>
-                  <Input
-                    id='quantity'
-                    name='quantity'
-                    type='number'
-                    value={newProduct.quantity}
-                    onChange={handleInputChange}
-                    className='col-span-3'
-                    min='0'
                   />
                 </div>
                 <div className='grid grid-cols-4 items-center gap-4'>
