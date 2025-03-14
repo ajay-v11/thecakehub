@@ -5,7 +5,7 @@ import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {ScrollArea} from '@/components/ui/scroll-area';
-import {ChevronDown, ChevronUp} from 'lucide-react';
+import {ChevronDown, ChevronUp, Loader2} from 'lucide-react';
 import {getAllOrder, getAllCustomOrders} from '@/lib/actions/orders';
 import {
   acceptCustomOrder,
@@ -55,6 +55,8 @@ interface TransformedItem {
 interface UIOrder extends Omit<ServerOrder, 'status' | 'delivered'> {
   status: 'pending' | 'accepted' | 'delivered';
   items: TransformedItem[];
+  isAccepting?: boolean;
+  isDelivering?: boolean;
 }
 
 // Add CustomOrder interface
@@ -76,6 +78,8 @@ interface ServerCustomOrder {
 interface UICustomOrder
   extends Omit<ServerCustomOrder, 'status' | 'delivered'> {
   status: 'pending' | 'accepted' | 'delivered';
+  isAccepting?: boolean;
+  isDelivering?: boolean;
 }
 
 export default function AdminDashboard() {
@@ -111,6 +115,8 @@ export default function AdminDashboard() {
               quantity: item.quantity,
               price: item.product.price,
             })),
+            isAccepting: false,
+            isDelivering: false,
           };
         })
         .sort(
@@ -136,6 +142,8 @@ export default function AdminDashboard() {
             return {
               ...order,
               status: orderStatus,
+              isAccepting: false,
+              isDelivering: false,
             };
           })
           .sort(
@@ -150,68 +158,118 @@ export default function AdminDashboard() {
   }, []);
 
   const handleAccept = async (order: UIOrder) => {
-    const result = await acceptOrder(order.id);
-    if (result.success) {
-      setOrders(
-        orders.map((o) => (o.id === order.id ? {...o, status: 'accepted'} : o))
-      );
+    // Set loading state
+    setOrders(
+      orders.map((o) => (o.id === order.id ? {...o, isAccepting: true} : o))
+    );
 
-      const emailPayload = {
-        orderId: order.id,
-        customerName: order.customerName,
-        customerEmail: order.customerEmail,
-        items: order.items,
-        total: order.total,
-      };
+    try {
+      const result = await acceptOrder(order.id);
+      if (result.success) {
+        // Update order status
+        setOrders(
+          orders.map((o) =>
+            o.id === order.id
+              ? {...o, status: 'accepted', isAccepting: false}
+              : o
+          )
+        );
 
-      const emailResponse = await sendOrderEmail(
-        emailPayload,
-        'orderConfirmed'
-      );
+        const emailPayload = {
+          orderId: order.id,
+          customerName: order.customerName,
+          customerEmail: order.customerEmail,
+          items: order.items,
+          total: order.total,
+        };
 
-      if (emailResponse.status === 200) {
-        alert('Order confirmed');
+        const emailResponse = await sendOrderEmail(
+          emailPayload,
+          'orderConfirmed'
+        );
+
+        if (emailResponse.status === 200) {
+          alert('Order confirmed');
+        } else {
+          console.warn(
+            'Failed to send order confirmation email:',
+            emailResponse.message
+          );
+        }
       } else {
-        console.warn(
-          'Failed to send order confirmation email:',
-          emailResponse.message
+        alert('Server error');
+        // Reset loading state on error
+        setOrders(
+          orders.map((o) =>
+            o.id === order.id ? {...o, isAccepting: false} : o
+          )
         );
       }
-    } else {
-      alert('Server error');
+    } catch (error) {
+      console.error('Error accepting order:', error);
+      alert('An error occurred while accepting the order');
+      // Reset loading state on error
+      setOrders(
+        orders.map((o) => (o.id === order.id ? {...o, isAccepting: false} : o))
+      );
     }
   };
 
   const handleDeliver = async (order: UIOrder) => {
-    const result = await markDeliver(order.id);
-    if (result.success) {
-      setOrders(
-        orders.map((o) => (o.id === order.id ? {...o, status: 'delivered'} : o))
-      );
+    // Set loading state
+    setOrders(
+      orders.map((o) => (o.id === order.id ? {...o, isDelivering: true} : o))
+    );
 
-      const emailPayload = {
-        orderId: order.id,
-        customerName: order.customerName,
-        customerEmail: order.customerEmail,
-        items: order.items,
-        total: order.total,
-      };
+    try {
+      const result = await markDeliver(order.id);
+      if (result.success) {
+        // Update order status
+        setOrders(
+          orders.map((o) =>
+            o.id === order.id
+              ? {...o, status: 'delivered', isDelivering: false}
+              : o
+          )
+        );
 
-      const emailResponse = await sendOrderEmail(
-        emailPayload,
-        'orderDelivered'
-      );
+        const emailPayload = {
+          orderId: order.id,
+          customerName: order.customerName,
+          customerEmail: order.customerEmail,
+          items: order.items,
+          total: order.total,
+        };
 
-      if (emailResponse.status === 200) {
-        alert('Order Delivered');
+        const emailResponse = await sendOrderEmail(
+          emailPayload,
+          'orderDelivered'
+        );
+
+        if (emailResponse.status === 200) {
+          alert('Order Delivered');
+        } else {
+          console.warn(
+            'Failed to send order delivery email:',
+            emailResponse.message
+          );
+        }
       } else {
-        console.warn(
-          'Failed to send order delivery email:',
-          emailResponse.message
+        alert('Server error');
+        // Reset loading state on error
+        setOrders(
+          orders.map((o) =>
+            o.id === order.id ? {...o, isDelivering: false} : o
+          )
         );
       }
-    } else {
-      alert('Server error');
+    } catch (error) {
+      console.error('Error marking order as delivered:', error);
+      alert('An error occurred while marking the order as delivered');
+      // Reset loading state on error
+      setOrders(
+        orders.map((o) => (o.id === order.id ? {...o, isDelivering: false} : o))
+      );
     }
   };
 
@@ -228,76 +286,130 @@ export default function AdminDashboard() {
   };
 
   const handleAcceptCustom = async (order: UICustomOrder) => {
-    const result = await acceptCustomOrder(order.id);
-    if (result.success) {
-      setCustomOrders(
-        customOrders.map((o) =>
-          o.id === order.id ? {...o, status: 'accepted'} : o
-        )
-      );
+    // Set loading state
+    setCustomOrders(
+      customOrders.map((o) =>
+        o.id === order.id ? {...o, isAccepting: true} : o
+      )
+    );
 
-      // Send email notification using the new function
-      if (order.customerEmail) {
-        const emailPayload = {
-          orderId: order.id,
-          customerName: order.customerName,
-          customerEmail: order.customerEmail,
-          description: order.description,
-        };
-
-        const emailResponse = await sendCustomOrderEmail(
-          emailPayload,
-          'customOrderConfirmed'
+    try {
+      const result = await acceptCustomOrder(order.id);
+      if (result.success) {
+        // Update order status
+        setCustomOrders(
+          customOrders.map((o) =>
+            o.id === order.id
+              ? {...o, status: 'accepted', isAccepting: false}
+              : o
+          )
         );
 
-        if (emailResponse.status === 200) {
-          alert('Custom Order confirmed');
-        } else {
-          console.warn(
-            'Failed to send custom order confirmation email:',
-            emailResponse.message
+        // Send email notification using the new function
+        if (order.customerEmail) {
+          const emailPayload = {
+            orderId: order.id,
+            customerName: order.customerName,
+            customerEmail: order.customerEmail,
+            description: order.description,
+          };
+
+          const emailResponse = await sendCustomOrderEmail(
+            emailPayload,
+            'customOrderConfirmed'
           );
+
+          if (emailResponse.status === 200) {
+            alert('Custom Order confirmed');
+          } else {
+            console.warn(
+              'Failed to send custom order confirmation email:',
+              emailResponse.message
+            );
+          }
         }
+      } else {
+        alert('Server error while accepting order');
+        // Reset loading state on error
+        setCustomOrders(
+          customOrders.map((o) =>
+            o.id === order.id ? {...o, isAccepting: false} : o
+          )
+        );
       }
-    } else {
-      alert('Server error while accepting order');
+    } catch (error) {
+      console.error('Error accepting custom order:', error);
+      alert('An error occurred while accepting the custom order');
+      // Reset loading state on error
+      setCustomOrders(
+        customOrders.map((o) =>
+          o.id === order.id ? {...o, isAccepting: false} : o
+        )
+      );
     }
   };
 
   const handleDeliverCustom = async (order: UICustomOrder) => {
-    const result = await markCustomDeliver(order.id);
-    if (result.success) {
-      setCustomOrders(
-        customOrders.map((o) =>
-          o.id === order.id ? {...o, status: 'delivered'} : o
-        )
-      );
+    // Set loading state
+    setCustomOrders(
+      customOrders.map((o) =>
+        o.id === order.id ? {...o, isDelivering: true} : o
+      )
+    );
 
-      // Send email notification using the new function
-      if (order.customerEmail) {
-        const emailPayload = {
-          orderId: order.id,
-          customerName: order.customerName,
-          customerEmail: order.customerEmail,
-          description: order.description,
-        };
-
-        const emailResponse = await sendCustomOrderEmail(
-          emailPayload,
-          'customOrderDelivered'
+    try {
+      const result = await markCustomDeliver(order.id);
+      if (result.success) {
+        // Update order status
+        setCustomOrders(
+          customOrders.map((o) =>
+            o.id === order.id
+              ? {...o, status: 'delivered', isDelivering: false}
+              : o
+          )
         );
 
-        if (emailResponse.status === 200) {
-          alert('Custom Order Delivered');
-        } else {
-          console.warn(
-            'Failed to send custom order delivery email:',
-            emailResponse.message
+        // Send email notification using the new function
+        if (order.customerEmail) {
+          const emailPayload = {
+            orderId: order.id,
+            customerName: order.customerName,
+            customerEmail: order.customerEmail,
+            description: order.description,
+          };
+
+          const emailResponse = await sendCustomOrderEmail(
+            emailPayload,
+            'customOrderDelivered'
           );
+
+          if (emailResponse.status === 200) {
+            alert('Custom Order Delivered');
+          } else {
+            console.warn(
+              'Failed to send custom order delivery email:',
+              emailResponse.message
+            );
+          }
         }
+      } else {
+        alert('Server error while marking delivery');
+        // Reset loading state on error
+        setCustomOrders(
+          customOrders.map((o) =>
+            o.id === order.id ? {...o, isDelivering: false} : o
+          )
+        );
       }
-    } else {
-      alert('Server error while marking delivery');
+    } catch (error) {
+      console.error('Error marking custom order as delivered:', error);
+      alert('An error occurred while marking the custom order as delivered');
+      // Reset loading state on error
+      setCustomOrders(
+        customOrders.map((o) =>
+          o.id === order.id ? {...o, isDelivering: false} : o
+        )
+      );
     }
   };
 
@@ -440,8 +552,16 @@ export default function AdminDashboard() {
                           <Button
                             onClick={() => handleAccept(order)}
                             variant='outline'
-                            className='border-green-500 text-green-500 hover:bg-green-50'>
-                            Accept
+                            disabled={order.isAccepting}
+                            className='border-green-500 text-green-500 hover:bg-green-50 disabled:opacity-50'>
+                            {order.isAccepting ? (
+                              <>
+                                <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                                Updating...
+                              </>
+                            ) : (
+                              'Accept'
+                            )}
                           </Button>
                         )}
                         {(order.status === 'pending' ||
@@ -449,8 +569,16 @@ export default function AdminDashboard() {
                           <Button
                             onClick={() => handleDeliver(order)}
                             variant='outline'
-                            className='border-purple-500 text-purple-500 hover:bg-purple-50'>
-                            Mark as Delivered
+                            disabled={order.isDelivering}
+                            className='border-purple-500 text-purple-500 hover:bg-purple-50 disabled:opacity-50'>
+                            {order.isDelivering ? (
+                              <>
+                                <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                                Updating...
+                              </>
+                            ) : (
+                              'Mark as Delivered'
+                            )}
                           </Button>
                         )}
                       </div>
@@ -539,8 +667,16 @@ export default function AdminDashboard() {
                           <Button
                             onClick={() => handleAcceptCustom(order)}
                             variant='outline'
-                            className='border-green-500 text-green-500 hover:bg-green-50'>
-                            Accept
+                            disabled={order.isAccepting}
+                            className='border-green-500 text-green-500 hover:bg-green-50 disabled:opacity-50'>
+                            {order.isAccepting ? (
+                              <>
+                                <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                                Updating...
+                              </>
+                            ) : (
+                              'Accept'
+                            )}
                           </Button>
                         )}
                         {(order.status === 'pending' ||
@@ -548,8 +684,16 @@ export default function AdminDashboard() {
                           <Button
                             onClick={() => handleDeliverCustom(order)}
                             variant='outline'
-                            className='border-purple-500 text-purple-500 hover:bg-purple-50'>
-                            Mark as Delivered
+                            disabled={order.isDelivering}
+                            className='border-purple-500 text-purple-500 hover:bg-purple-50 disabled:opacity-50'>
+                            {order.isDelivering ? (
+                              <>
+                                <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                                Updating...
+                              </>
+                            ) : (
+                              'Mark as Delivered'
+                            )}
                           </Button>
                         )}
                       </div>

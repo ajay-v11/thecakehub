@@ -2,6 +2,7 @@ import type {NextAuthOptions, User as NextAuthUser} from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import {prisma} from '@/lib/prisma';
 import GoogleProvider from 'next-auth/providers/google';
+import bcrypt from 'bcrypt';
 
 // Custom User type to match NextAuth expectations
 type CustomUser = NextAuthUser & {
@@ -57,34 +58,92 @@ export const options: NextAuthOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
+        email: {label: 'Email', type: 'email'},
+        password: {label: 'Password', type: 'password'},
         username: {label: 'Name', type: 'text'},
-        email: {label: 'Email', type: 'text'},
       },
       async authorize(credentials): Promise<CustomUser | null> {
-        if (!credentials?.email || !credentials?.username) {
-          console.log('Missing credentials:', credentials);
+        if (!credentials?.email) {
+          console.log('Missing email credential');
           return null;
         }
-        console.log('Credentials received:', credentials);
 
         try {
-          const user = await prisma.user.upsert({
-            where: {email: credentials.email},
-            update: {name: credentials.username},
-            create: {
-              email: credentials.email,
-              name: credentials.username,
-              isAdmin: false,
-            },
-          });
-          return {
-            id: user.id,
-            name: user.name!,
-            email: user.email,
-            isAdmin: user.isAdmin,
-          };
+          // For login: email and password are required
+          if (credentials.password && !credentials.username) {
+            // This is a login attempt
+            const user = await prisma.user.findUnique({
+              where: {email: credentials.email},
+            });
+
+            if (!user || !user.password) {
+              console.log('User not found or no password set');
+              return null;
+            }
+
+            // Verify password
+            const passwordMatch = await bcrypt.compare(
+              credentials.password,
+              user.password
+            );
+
+            if (!passwordMatch) {
+              console.log('Password does not match');
+              return null;
+            }
+
+            return {
+              id: user.id,
+              name: user.name!,
+              email: user.email,
+              isAdmin: user.isAdmin,
+              image: user.image,
+            };
+          }
+          // For signup: email, password, and username are required
+          else if (credentials.password && credentials.username) {
+            // This is a signup attempt
+            // Check if user already exists
+            const existingUser = await prisma.user.findUnique({
+              where: {email: credentials.email},
+            });
+
+            if (existingUser && existingUser.password) {
+              console.log('User already exists with password');
+              return null;
+            }
+
+            // Hash the password
+            const hashedPassword = await bcrypt.hash(credentials.password, 10);
+
+            // Create or update the user
+            const user = await prisma.user.upsert({
+              where: {email: credentials.email},
+              update: {
+                name: credentials.username,
+                password: hashedPassword,
+              },
+              create: {
+                email: credentials.email,
+                name: credentials.username,
+                password: hashedPassword,
+                isAdmin: false,
+              },
+            });
+
+            return {
+              id: user.id,
+              name: user.name!,
+              email: user.email,
+              isAdmin: user.isAdmin,
+              image: user.image,
+            };
+          } else {
+            console.log('Invalid credential combination');
+            return null;
+          }
         } catch (error) {
-          console.error('Credentials Authorization Error:', error);
+          console.error('Authorization Error:', error);
           return null;
         }
       },

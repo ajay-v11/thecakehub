@@ -29,6 +29,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState('payOnDelivery');
   const {data: session} = useSession();
   const clearCart = useCartStore((state) => state.clearCart);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCustomerDetailsChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -63,12 +64,19 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (total <= 0) {
+      alert('Your cart is empty. Please add items before placing an order.');
+      return;
+    }
+
     const userId = session?.user?.id;
 
     if (!userId) {
       alert('User ID is missing. Please log in and try again.');
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       const orderPayload = {
@@ -88,6 +96,7 @@ export default function CheckoutPage() {
       if (response.success && response.order?.id) {
         setOrderId(response.order.id.toString());
         setShowDialog(true);
+        clearCart();
 
         const emailPayload = {
           orderId: response.order.id,
@@ -109,8 +118,6 @@ export default function CheckoutPage() {
             emailResponse.message
           );
         }
-
-        clearCart();
       } else {
         alert('Failed to place order. Please try again.');
         console.warn('Order submission failed:', response);
@@ -120,6 +127,8 @@ export default function CheckoutPage() {
       alert(
         'An unexpected error occurred while placing your order. Please try again later.'
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -137,40 +146,46 @@ export default function CheckoutPage() {
                   <h2 className='text-xl font-semibold mb-4 text-purple-800'>
                     Cart Items
                   </h2>
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className='flex justify-between items-center mb-2 text-slate-800 p-2'>
-                      <span>{item.title}</span>
+                  {items.length > 0 ? (
+                    items.map((item) => (
+                      <div
+                        key={item.id}
+                        className='flex justify-between items-center mb-2 text-slate-800 p-2'>
+                        <span>{item.title}</span>
 
-                      <div>
-                        <Button
-                          type='button'
-                          variant='outline'
-                          size='sm'
-                          onClick={() =>
-                            handleQuantityChange(item, item.quantity - 1)
-                          }
-                          className='text-purple-700 border-purple-700 hover:bg-purple-100'>
-                          -
-                        </Button>
-                        <span className='mx-2'>{item.quantity}</span>
-                        <Button
-                          type='button'
-                          variant='outline'
-                          size='sm'
-                          onClick={() =>
-                            handleQuantityChange(item, item.quantity + 1)
-                          }
-                          className='text-purple-700 border-purple-700 hover:bg-purple-100'>
-                          +
-                        </Button>
-                        <span className='ml-4 text-xs md:text-sm lg:text-base'>
-                          Rs {item.price * item.quantity}
-                        </span>
+                        <div>
+                          <Button
+                            type='button'
+                            variant='outline'
+                            size='sm'
+                            onClick={() =>
+                              handleQuantityChange(item, item.quantity - 1)
+                            }
+                            className='text-purple-700 border-purple-700 hover:bg-purple-100'>
+                            -
+                          </Button>
+                          <span className='mx-2'>{item.quantity}</span>
+                          <Button
+                            type='button'
+                            variant='outline'
+                            size='sm'
+                            onClick={() =>
+                              handleQuantityChange(item, item.quantity + 1)
+                            }
+                            className='text-purple-700 border-purple-700 hover:bg-purple-100'>
+                            +
+                          </Button>
+                          <span className='ml-4 text-xs md:text-sm lg:text-base'>
+                            Rs {item.price * item.quantity}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className='text-red-500 text-center'>
+                      Your cart is empty. Please add items before checking out.
+                    </p>
+                  )}
                   <div className='text-right font-bold mt-4 text-purple-900'>
                     Total: Rs {total}
                   </div>
@@ -285,8 +300,13 @@ export default function CheckoutPage() {
                 </div>
                 <Button1
                   type='submit'
-                  className='w-full bg-purple-700 text-white hover:bg-purple-600'>
-                  Place Order
+                  disabled={isSubmitting || total <= 0}
+                  className={`w-full ${
+                    isSubmitting || total <= 0
+                      ? 'bg-purple-400 cursor-not-allowed'
+                      : 'bg-purple-700 hover:bg-purple-600'
+                  } text-white`}>
+                  {isSubmitting ? 'Placing Order...' : 'Place Order'}
                 </Button1>
               </div>
             </div>

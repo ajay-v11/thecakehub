@@ -13,6 +13,8 @@ const Header: React.FC = () => {
   const [userIsOpen, setUserIsOpen] = useState<boolean>(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
   const {data: session} = useSession();
 
@@ -22,8 +24,14 @@ const Header: React.FC = () => {
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Handle mobile menu
-      if (isOpen && !(event.target as Element).closest('button')) {
+      // Handle mobile menu - only close if clicking outside both the menu and hamburger button
+      if (
+        isOpen &&
+        mobileMenuRef.current &&
+        hamburgerRef.current &&
+        !mobileMenuRef.current.contains(event.target as Node) &&
+        !hamburgerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
 
@@ -59,6 +67,12 @@ const Header: React.FC = () => {
 
   const handleLogin = () => {
     router.push('/login');
+  };
+
+  // Close mobile menu after successful navigation
+  const handleMobileLinkClick = () => {
+    // Use setTimeout to ensure the link navigation happens before closing the menu
+    setTimeout(() => setIsOpen(false), 150);
   };
 
   return (
@@ -167,7 +181,10 @@ const Header: React.FC = () => {
             </div>
 
             {/* Hamburger Menu */}
-            <button onClick={toggleMenu} className='block md:hidden'>
+            <button
+              ref={hamburgerRef}
+              onClick={toggleMenu}
+              className='block md:hidden'>
               <svg
                 xmlns='http://www.w3.org/2000/svg'
                 fill='none'
@@ -187,29 +204,47 @@ const Header: React.FC = () => {
 
         {/* Expandable Menu for Mobile */}
         {isOpen && (
-          <div className='flex flex-col gap-4 mt-2 bg-white shadow-md rounded-lg p-4 text-slate-800 text-sm'>
-            <Link href='/' className='hover:text-pink-400'>
+          <div
+            ref={mobileMenuRef}
+            className='flex flex-col gap-4 mt-2 bg-white shadow-md rounded-lg p-4 text-slate-800 text-sm'>
+            <Link
+              href='/'
+              className='hover:text-pink-400'
+              onClick={handleMobileLinkClick}>
               Home
             </Link>
-            <Link href='/shop' className='hover:text-pink-400'>
+            <Link
+              href='/shop'
+              className='hover:text-pink-400'
+              onClick={handleMobileLinkClick}>
               Shop
             </Link>
-            <Link href='/custom' className='hover:text-pink-400'>
+            <Link
+              href='/custom'
+              className='hover:text-pink-400'
+              onClick={handleMobileLinkClick}>
               Custom Cake
             </Link>
-            <Link href='/contact' className='hover:text-pink-400'>
+            <Link
+              href='/contact'
+              className='hover:text-pink-400'
+              onClick={handleMobileLinkClick}>
               Contact
             </Link>
             {isAdmin && (
               <Link
                 href='/dashboard/orders'
-                className='hover:text-pink-400 font-medium text-pink-500'>
+                className='hover:text-pink-400 font-medium text-pink-500'
+                onClick={handleMobileLinkClick}>
                 All Orders
               </Link>
             )}
             {session && (
               <>
-                <Link href='/' className='hover:text-pink-400'>
+                <Link
+                  href='/'
+                  className='hover:text-pink-400'
+                  onClick={handleMobileLinkClick}>
                   My Orders
                 </Link>
               </>
